@@ -1,5 +1,12 @@
 import bpy
+
+import sys
+import os
+
+
+
 # Have to import everything with classes which need to be registered
+from . euclid import *
 
 bl_info = {
     "name": "Toaster",
@@ -66,7 +73,9 @@ class CustomRenderEngine(bpy.types.RenderEngine):
 
 
 def register():
+    pipo=Vector3(1.0, 2.0, 3.0)
     print("Hello, REGISTER*************")
+    print(pipo)
     # Register the RenderEngine
     bpy.utils.register_class(CustomRenderEngine)
 
