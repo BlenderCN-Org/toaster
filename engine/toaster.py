@@ -1,15 +1,12 @@
 import bpy
+from mathutils import Vector, Color
+from . ray import Ray
 
 
 # http://excamera.com/sphinx/article-srgb.html
-def s2lin(x):
+def s2lin(color):
     a = 0.055
-    return x * (1.0 / 12.92) if x <= 0.04045 else pow((x + a) * (1.0 / (1 + a)), 2.4)
-
-
-def lin2s(x):
-    a = 0.055
-    return x * 12.92 if x <= 0.0031308 else (1 + a) * pow(x, 1 / 2.4) - a
+    return Color([x * (1.0 / 12.92) if x <= 0.04045 else pow((x + a) * (1.0 / (1 + a)), 2.4) for x in color])
 
 
 class ToasterRenderEngine(bpy.types.RenderEngine):
@@ -23,7 +20,6 @@ class ToasterRenderEngine(bpy.types.RenderEngine):
     # we use it to detect preview rendering and call the implementation
     # in another method.
     def render(self, sc):
-
         scene=bpy.data.scenes[0]
         scale = scene.render.resolution_percentage / 100.0
         self.size_x = int(scene.render.resolution_x * scale)
@@ -34,6 +30,26 @@ class ToasterRenderEngine(bpy.types.RenderEngine):
             self.render_preview(scene)
         else:
             self.render_colors(scene)
+
+    def color(self, ray):
+        if self.hit_sphere(Vector((0, 0, -1)), 0.5, ray):
+            return Color((1, 0, 0))
+
+        # blend the y-value of direction
+        unit_direction = ray.direction.normalized()
+        t = 0.5 * (unit_direction.y + 1.0)
+        return Color(Vector((1.0, 1.0, 1.0)).lerp(Vector((0.5, 0.7, 1.0)), t))
+
+    def hit_sphere(self, center, radius, ray):
+
+        oc = ray.origin - center
+        a = ray.direction.dot(ray.direction)
+        b = oc.dot(ray.direction)
+        c = oc.dot(oc) - radius * radius
+
+        discriminant = b * b - a * c
+
+        return discriminant > 0
 
     def render_colors(self, scene):
         nx = self.size_x
@@ -46,50 +62,31 @@ class ToasterRenderEngine(bpy.types.RenderEngine):
 
         # Here we write the pixel values to the RenderResult
         result = self.begin_result(0, 0, self.size_x, self.size_y)
-
         layer = result.layers[0].passes["Combined"]
         pixel = 0
 
+        lower_left_corner = Vector((-2.0, -1.0, -1.0))
+        horizontal = Vector((4.0, 0.0, 0.0))
+        vertical = Vector((0.0, 2.0, 0.0))
+        origin = Vector((0.0, 0.0, 0.0))
+
         for j in range(0, ny):
             for i in range(0, nx):
-                r = float(i) / float(nx)
-                g = float(j) / float(ny)
-                b = float(0.2)
+                u = float(i) / float(nx)
+                v = float(j) / float(ny)
 
-                framebuffer[pixel]=(s2lin(r), s2lin(g), s2lin(b), 1.0)
-                pixel+=1
+                # simple camera
+                ray = Ray(origin=origin, direction=lower_left_corner + horizontal * u + vertical * v)
+                col = self.color(ray)
+
+                # update framebuffer
+                col = s2lin(col)
+                framebuffer[pixel] = (col.r, col.g, col.b, 1.0)
+                pixel += 1
 
             if j % 100 == 0 :
                 layer.rect=framebuffer
                 self.update_result(result)
 
         layer.rect = framebuffer
-        self.end_result(result)
-
-    # In this example, we fill the preview renders with a flat green color.
-    def render_preview(self, scene):
-        pixel_count = self.size_x * self.size_y
-
-        # The framebuffer is defined as a list of pixels, each pixel
-        # itself being a list of R,G,B,A values
-        green_rect = [[0.0, 1.0, 0.0, 1.0]] * pixel_count
-
-        # Here we write the pixel values to the RenderResult
-        result = self.begin_result(0, 0, self.size_x, self.size_y)
-        layer = result.layers[0].passes["Combined"]
-        layer.rect = green_rect
-        self.end_result(result)
-
-    # In this example, we fill the full renders with a flat blue color.
-    def render_scene(self, scene):
-        pixel_count = self.size_x * self.size_y
-
-        # The framebuffer is defined as a list of pixels, each pixel
-        # itself being a list of R,G,B,A values
-        blue_rect = [[0.0, 0.0, 1.0, 1.0]] * pixel_count
-
-        # Here we write the pixel values to the RenderResult
-        result = self.begin_result(0, 0, self.size_x, self.size_y)
-        layer = result.layers[0].passes["Combined"]
-        layer.rect = blue_rect
         self.end_result(result)
