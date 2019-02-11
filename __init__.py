@@ -1,4 +1,5 @@
 import bpy
+import random
 
 # Have to import everything with classes which need to be registered
 from . euclid import *
