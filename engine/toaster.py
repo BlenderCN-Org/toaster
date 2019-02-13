@@ -1,4 +1,5 @@
 import bpy
+from math import  sqrt
 from mathutils import Vector, Color
 from . ray import Ray
 
@@ -32,8 +33,11 @@ class ToasterRenderEngine(bpy.types.RenderEngine):
             self.render_colors(scene)
 
     def color(self, ray):
-        if self.hit_sphere(Vector((0, 0, -1)), 0.5, ray):
-            return Color((1, 0, 0))
+        t= self.hit_sphere(Vector((0, 0, -1)), 0.5, ray)
+        if t > 0:
+            N=Vector(ray.point_at_parameter(t)-Vector((0,0,-1))).normalized()
+            return(Color( (N+Vector((1,1,1))) * 0.5 ))
+
 
         # blend the y-value of direction
         unit_direction = ray.direction.normalized()
@@ -44,12 +48,14 @@ class ToasterRenderEngine(bpy.types.RenderEngine):
 
         oc = ray.origin - center
         a = ray.direction.dot(ray.direction)
-        b = oc.dot(ray.direction)
+        b = 2 * oc.dot(ray.direction)
         c = oc.dot(oc) - radius * radius
 
-        discriminant = b * b - a * c
+        discriminant = b * b - 4 * a * c
 
-        return discriminant > 0
+        if discriminant < 0: return -1.0
+        else: return (-b - sqrt(discriminant)) / (2 * a)
+
 
     def render_colors(self, scene):
         nx = self.size_x
