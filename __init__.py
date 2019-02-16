@@ -1,7 +1,7 @@
 import bpy
 
 # Have to import everything with classes which need to be registered
-from . euclid import *
+#from . euclid import *
 from . engine.toaster import ToasterRenderEngine
 
 bl_info = {
@@ -19,9 +19,7 @@ bl_info = {
 
 
 def register():
-    pipo=Vector3(1.0, 2.0, 3.0)
     print("Hello, REGISTER*************")
-    print(pipo)
     # Register the RenderEngine
     bpy.utils.register_class(ToasterRenderEngine)
 
