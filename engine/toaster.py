@@ -2,6 +2,9 @@ import bpy
 from math import  sqrt
 from mathutils import Vector, Color
 from . ray import Ray
+from . hitable_list import Hitable_list
+from . sphere import Sphere
+from . hit_record import  Hit_record
 
 
 # http://excamera.com/sphinx/article-srgb.html
@@ -28,21 +31,25 @@ class ToasterRenderEngine(bpy.types.RenderEngine):
         print("Rendering " + str(self.size_x) + "x" + str(self.size_y) + " ("+ str(scale) +" scale)")
 
         if self.is_preview:
-            self.render_preview(scene)
+            self.render_preview(sc)
         else:
-            self.render_colors(scene)
+            self.render_colors(sc)
 
-    def color(self, ray):
-        t= self.hit_sphere(Vector((0, 0, -1)), 0.5, ray)
-        if t > 0:
-            N=Vector(ray.point_at_parameter(t)-Vector((0,0,-1))).normalized()
-            return(Color( (N+Vector((1,1,1))) * 0.5 ))
+    def color(self, ray, world):
+        #t= self.hit_sphere(Vector((0, 0, -1)), 0.5, ray)
+        #if t > 0:
+        #    N=Vector(ray.point_at_parameter(t)-Vector((0,0,-1))).normalized()
+        #    return(Color( (N+Vector((1,1,1))) * 0.5 ))
 
+        hit_record = Hit_record(t=0, p=Vector((0, 0, 0)), normal=Vector((0, 0, 0)))
 
-        # blend the y-value of direction
-        unit_direction = ray.direction.normalized()
-        t = 0.5 * (unit_direction.y + 1.0)
-        return Color(Vector((1.0, 1.0, 1.0)).lerp(Vector((0.5, 0.7, 1.0)), t))
+        if world.hit(ray, 0.0, 10000, hit_record):
+            return Vector((hit_record.normal.x + 1, hit_record.normal.y + 1, hit_record.normal.z + 1)) * 0.5
+        else:
+            # blend the y-value of direction
+            unit_direction = ray.direction.normalized()
+            t = 0.5 * (unit_direction.y + 1.0)
+            return Color(Vector((1.0, 1.0, 1.0)).lerp(Vector((0.5, 0.7, 1.0)), t))
 
     def hit_sphere(self, center, radius, ray):
 
@@ -76,6 +83,10 @@ class ToasterRenderEngine(bpy.types.RenderEngine):
         vertical = Vector((0.0, 2.0, 0.0))
         origin = Vector((0.0, 0.0, 0.0))
 
+        sphere1 = Sphere(Vector((0.0, 0.0, -1.0)), 0.5)
+        sphere2 = Sphere(Vector((0.0, -100.5, -1.0)), 100.0)
+        world = Hitable_list([sphere1, sphere2])
+
         for j in range(0, ny):
             for i in range(0, nx):
                 u = float(i) / float(nx)
@@ -83,7 +94,7 @@ class ToasterRenderEngine(bpy.types.RenderEngine):
 
                 # simple camera
                 ray = Ray(origin=origin, direction=lower_left_corner + horizontal * u + vertical * v)
-                col = self.color(ray)
+                col = self.color(ray, world)
 
                 # update framebuffer
                 col = s2lin(col)
