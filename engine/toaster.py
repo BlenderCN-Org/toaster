@@ -1,10 +1,12 @@
 import bpy
 from math import  sqrt
+from random import random
 from mathutils import Vector, Color
 from . ray import Ray
 from . hitable_list import Hitable_list
 from . sphere import Sphere
 from . hit_record import  Hit_record
+from . camera import Camera
 
 
 # http://excamera.com/sphinx/article-srgb.html
@@ -44,7 +46,7 @@ class ToasterRenderEngine(bpy.types.RenderEngine):
         hit_record = Hit_record(t=0, p=Vector((0, 0, 0)), normal=Vector((0, 0, 0)))
 
         if world.hit(ray, 0.0, 10000, hit_record):
-            return Vector((hit_record.normal.x + 1, hit_record.normal.y + 1, hit_record.normal.z + 1)) * 0.5
+            return(Color( (hit_record.normal+Vector((1,1,1))) * 0.5 )) #Vector((hit_record.normal.x + 1, hit_record.normal.y + 1, hit_record.normal.z + 1)) * 0.5
         else:
             # blend the y-value of direction
             unit_direction = ray.direction.normalized()
@@ -67,6 +69,7 @@ class ToasterRenderEngine(bpy.types.RenderEngine):
     def render_colors(self, scene):
         nx = self.size_x
         ny = self.size_y
+        ns = 10
         pixel_count = self.size_x * self.size_y
 
         # The framebuffer is defined as a list of pixels, each pixel
@@ -78,10 +81,7 @@ class ToasterRenderEngine(bpy.types.RenderEngine):
         layer = result.layers[0].passes["Combined"]
         pixel = 0
 
-        lower_left_corner = Vector((-2.0, -1.0, -1.0))
-        horizontal = Vector((4.0, 0.0, 0.0))
-        vertical = Vector((0.0, 2.0, 0.0))
-        origin = Vector((0.0, 0.0, 0.0))
+        camera = Camera()
 
         sphere1 = Sphere(Vector((0.0, 0.0, -1.0)), 0.5)
         sphere2 = Sphere(Vector((0.0, -100.5, -1.0)), 100.0)
@@ -89,14 +89,18 @@ class ToasterRenderEngine(bpy.types.RenderEngine):
 
         for j in range(0, ny):
             for i in range(0, nx):
-                u = float(i) / float(nx)
-                v = float(j) / float(ny)
+                col = Color((0.0, 0.0, 0.0))
+                for k in range(0, ns):
+                    u = float(i+random()) / float(nx)
+                    v = float(j+random()) / float(ny)
 
-                # simple camera
-                ray = Ray(origin=origin, direction=lower_left_corner + horizontal * u + vertical * v)
-                col = self.color(ray, world)
+
+                    # simple camera
+                    ray = camera.get_ray(u, v)
+                    col += self.color(ray, world)
 
                 # update framebuffer
+                col /= ns
                 col = s2lin(col)
                 framebuffer[pixel] = (col.r, col.g, col.b, 1.0)
                 pixel += 1
