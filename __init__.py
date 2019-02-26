@@ -3,6 +3,7 @@ import bpy
 # Have to import everything with classes which need to be registered
 #from . euclid import *
 from . engine.toaster import ToasterRenderEngine
+#from bl_ui.properties_render import RENDER_PT_render
 
 bl_info = {
     "name": "Toaster",
@@ -17,6 +18,15 @@ bl_info = {
     "tracker_url": "https://github.com/jromang/toaster/issues/new",
 }
 
+def draw_panel(self, context):
+    layout = self.layout
+    scene = context.scene
+
+    if context.engine=="toaster_renderer":
+        view = context.space_data
+        cscene = scene.cycles
+        layout.prop(cscene, "preview_pause", icon="PAUSE", text="")
+
 
 def register():
     print("Hello, REGISTER*************")
@@ -29,9 +39,10 @@ def register():
     # the material preview panel.
     #from bl_ui import (
     #    properties_render,
-    #    properties_material,
+        #properties_material,
     #)
-    #properties_render.RENDER_PT_render.COMPAT_ENGINES.add(CustomRenderEngine.bl_idname)
+    #properties_render.RENDER_PT_render.COMPAT_ENGINES.add(ToasterRenderEngine.bl_idname)
+    bpy.types.RENDER_PT_context.append(draw_panel)
     #properties_material.MATERIAL_PT_preview.COMPAT_ENGINES.add(CustomRenderEngine.bl_idname)
 
 
@@ -43,6 +54,7 @@ def unregister():
     #    properties_material,
     #)
     #properties_render.RENDER_PT_render.COMPAT_ENGINES.remove(CustomRenderEngine.bl_idname)
+    bpy.types.RENDER_PT_context.remove(draw_panel)
     #properties_material.MATERIAL_PT_preview.COMPAT_ENGINES.remove(CustomRenderEngine.bl_idname)
 
 
