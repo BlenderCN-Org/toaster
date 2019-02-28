@@ -33,9 +33,9 @@ class ToasterRenderEngine(bpy.types.RenderEngine):
         print("Rendering " + str(self.size_x) + "x" + str(self.size_y) + " ("+ str(scale) +" scale)")
 
         if self.is_preview:
-            self.render_preview(sc)
+            self.render_preview(scene)
         else:
-            self.render_colors(sc)
+            self.render_colors(scene)
 
     def color(self, ray, world):
         #t= self.hit_sphere(Vector((0, 0, -1)), 0.5, ray)
@@ -69,7 +69,7 @@ class ToasterRenderEngine(bpy.types.RenderEngine):
     def render_colors(self, scene):
         nx = self.size_x
         ny = self.size_y
-        ns = 10
+        ns = scene.toaster.spp #bpy.data.scenes[0].toaster.spp
         pixel_count = self.size_x * self.size_y
 
         # The framebuffer is defined as a list of pixels, each pixel
